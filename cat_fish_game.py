@@ -5,6 +5,15 @@ import random
 import time
 
 pygame.init()
+pygame.mixer.init()
+
+# ─── Background Music ───
+import os
+_music_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meow.mp3")
+if os.path.exists(_music_path):
+    pygame.mixer.music.load(_music_path)
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1)  # loop forever
 
 # ─── Constants ───
 WIDTH, HEIGHT = 900, 650
@@ -696,6 +705,7 @@ def main():
     level_banner = None
     combo = ComboCounter()
     shake = ScreenShake()
+    game_over_frame = 0  # tracks when game over started
 
     def reset_game():
         nonlocal cat, fishes, dogs, catnips, particles, score, display_score, level, fish_eaten, frame
@@ -924,6 +934,7 @@ def main():
                     if cat.lives <= 0:
                         high_score = max(high_score, score)
                         state = STATE_OVER
+                        game_over_frame = frame  # record when game over started
 
             # Fish
             for fish in fishes:
@@ -1091,7 +1102,11 @@ def main():
             particles = [p for p in particles if p.life > 0]
 
         # ─── Apply screen shake and draw ───
-        if state == STATE_PLAY or state == STATE_OVER:
+        # Shake only during play, and carry over into game over for max 3 seconds (180 frames)
+        if state == STATE_PLAY:
+            offset = shake.get_offset()
+        elif state == STATE_OVER and (frame - game_over_frame) < 180:
+            shake.update()
             offset = shake.get_offset()
         else:
             offset = (0, 0)
